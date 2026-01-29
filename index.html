@@ -32,33 +32,35 @@
     // PASTE YOUR GOOGLE WEB APP URL HERE
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxCv_mbnUbU8EKLbrP3T5WFFZIns34vBTYhAx_b1ZEHG8KxVdpnt7GYZVgGXJWoTD58/exec";
 
-function refreshData() {
+async function refreshData() {
   const display = document.getElementById('status-display');
   const logBody = document.getElementById('log-body');
 
-  // 1. FAST FETCH: Just the top status
-  fetch(WEB_APP_URL + "?type=latest")
-    .then(response => response.json())
-    .then(latest => {
-      const currentStatus = latest[1]; // Column B
-      display.innerText = "Current State: " + currentStatus;
-      display.style.color = (currentStatus === "OK") ? "green" : "red";
-      display.style.borderColor = (currentStatus === "OK") ? "green" : "red";
-    })
-    .catch(err => console.error("Error fetching latest:", err));
+  try {
+    // 1. FAST FETCH: Stop and wait for this to finish first
+    const latestResponse = await fetch(WEB_APP_URL + "?type=latest");
+    const latest = await latestResponse.json();
+    
+    // Update the top display immediately
+    const currentStatus = latest[1]; // Column B
+    display.innerText = "Current State: " + currentStatus;
+    display.style.color = (currentStatus === "OK") ? "green" : "red";
+    display.style.borderColor = (currentStatus === "OK") ? "green" : "red";
 
-  // 2. FULL FETCH: The history table
-  fetch(WEB_APP_URL)
-    .then(response => response.json())
-    .then(data => {
-      logBody.innerHTML = ""; // Clear table
-      data.forEach(row => {
-        let tr = document.createElement('tr');
-        tr.innerHTML = `<td>${row[0]}</td><td class="${row[1] === 'OK' ? 'status-ok' : 'status-error'}">${row[1]}</td>`;
-        logBody.appendChild(tr);
-      });
-    })
-    .catch(err => console.error("Error fetching history:", err));
+    // 2. FULL FETCH: This only starts after the code above is done
+    const historyResponse = await fetch(WEB_APP_URL);
+    const data = await historyResponse.json();
+
+    logBody.innerHTML = ""; // Clear table
+    data.forEach(row => {
+      let tr = document.createElement('tr');
+      tr.innerHTML = `<td>${row[0]}</td><td class="${row[1] === 'OK' ? 'status-ok' : 'status-error'}">${row[1]}</td>`;
+      logBody.appendChild(tr);
+    });
+
+  } catch (err) {
+    console.error("Error refreshing data:", err);
+  }
 }
 
     // Initial load
