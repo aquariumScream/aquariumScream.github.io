@@ -2,7 +2,6 @@
 <html>
 <head>
   <title>System Monitor</title>
-  <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; background: #f4f4f4; text-align: center; }
     #status-display {
@@ -19,60 +18,53 @@
 <body>
 
   <h1>System Dashboard</h1>
-  <div id="status-display">Loading Current State...</div>
+  <div id="status-display">Loading...</div>
 
-  <h3>Last 100 Updates (from Google Sheets)</h3>
-  <table class="history-table" id="log-table">
+  <h3>Last 100 Updates</h3>
+  <table class="history-table">
     <thead>
       <tr><th>Time</th><th>Status</th></tr>
     </thead>
-    <tbody id="log-body">
-      </tbody>
+    <tbody id="log-body"></tbody>
   </table>
 
   <script>
-    const SHEET_WEBAPP_URL = "PASTE_YOUR_GOOGLE_WEB_APP_URL_HERE";
+    // PASTE YOUR GOOGLE WEB APP URL HERE
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxCv_mbnUbU8EKLbrP3T5WFFZIns34vBTYhAx_b1ZEHG8KxVdpnt7GYZVgGXJWoTD58/exec";
 
-    // 1. FETCH HISTORICAL DATA
-    fetch(SHEET_WEBAPP_URL)
-      .then(response => response.json())
-      .then(data => {
-        const logBody = document.getElementById('log-body');
-        const display = document.getElementById('status-display');
-        
-        // Set the top status to the very first item in our reversed list
-        if(data.length > 0) {
-          updateDisplay(data[0][1]);
-        }
+    function refreshData() {
+      fetch(WEB_APP_URL)
+        .then(response => response.json())
+        .then(data => {
+          const logBody = document.getElementById('log-body');
+          const display = document.getElementById('status-display');
+          
+          // Clear current table
+          logBody.innerHTML = "";
 
-        // Fill the table
-        data.forEach(row => {
-          let tr = document.createElement('tr');
-          tr.innerHTML = `<td>${row[0]}</td><td class="${row[1] === 'OK' ? 'status-ok' : 'status-error'}">${row[1]}</td>`;
-          logBody.appendChild(tr);
-        });
-      });
+          if (data.length > 0) {
+            // Update Top Status (the first item in our reversed list)
+            const currentStatus = data[0][1];
+            display.innerText = "Current State: " + currentStatus;
+            display.style.color = (currentStatus === "OK") ? "green" : "red";
+            display.style.borderColor = (currentStatus === "OK") ? "green" : "red";
 
-    // 2. LIVE UPDATES VIA PUSHER
-    var pusher = new Pusher('4989bad33341365610ef', { cluster: 'us3' });
-    var channel = pusher.subscribe('AWLMS');
-    
-    channel.bind('test', function(data) {
-      updateDisplay(data.val);
-      
-      // Add new row to top of table live
-      const logBody = document.getElementById('log-body');
-      let tr = document.createElement('tr');
-      tr.innerHTML = `<td>Just Now</td><td class="${data.val === 'OK' ? 'status-ok' : 'status-error'}">${data.val}</td>`;
-      logBody.insertBefore(tr, logBody.firstChild);
-    });
-
-    function updateDisplay(val) {
-      var display = document.getElementById('status-display');
-      display.innerText = "Current State: " + val;
-      display.style.borderColor = (val === "OK") ? "green" : "red";
-      display.style.color = (val === "OK") ? "green" : "red";
+            // Fill Table
+            data.forEach(row => {
+              let tr = document.createElement('tr');
+              tr.innerHTML = `<td>${row[0]}</td><td class="${row[1] === 'OK' ? 'status-ok' : 'status-error'}">${row[1]}</td>`;
+              logBody.appendChild(tr);
+            });
+          }
+        })
+        .catch(err => console.error("Error fetching data:", err));
     }
+
+    // Initial load
+    refreshData();
+
+    // Auto-refresh every 30 seconds
+    setInterval(refreshData, 30000);
   </script>
 </body>
 </html>
