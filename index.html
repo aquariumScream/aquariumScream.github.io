@@ -2,9 +2,24 @@
 <head>
   <title>Pusher Test</title>
   <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
-  <script>
+  <style>
+    /* Adding some style so you can see it clearly */
+    #status-display {
+      font-size: 2em;
+      padding: 20px;
+      border: 2px solid #ccc;
+      display: inline-block;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pusher Test</h1>
+  <p>The current status is:</p>
+  
+  <div id="status-display">Waiting for data...</div>
 
-    // Enable pusher logging - don't include this in production
+  <script>
     Pusher.logToConsole = true;
 
     var pusher = new Pusher('4989bad33341365610ef', {
@@ -12,15 +27,21 @@
     });
 
     var channel = pusher.subscribe('AWLMS');
+    
     channel.bind('test', function(data) {
-      alert(JSON.stringify(data));
+      // 1. Find the element on the page with the ID 'status-display'
+      var display = document.getElementById('status-display');
+      
+      // 2. Put the value from Pusher into that element
+      // data.val comes from your Google Script: JSON.stringify({ "val": e })
+      display.innerText = data.val;
+      
+      // 3. Optional: Change color based on the message
+      if (data.val === "broken") {
+        display.style.color = "red";
+      } else {
+        display.style.color = "green";
+      }
     });
   </script>
-</head>
-<body>
-  <h1>Pusher Test</h1>
-  <p>
-    Try publishing an event to channel <code>my-channel</code>
-    with event name <code>my-event</code>.
-  </p>
 </body>
