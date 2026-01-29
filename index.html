@@ -1,47 +1,78 @@
 <!DOCTYPE html>
+<html>
 <head>
-  <title>Pusher Test</title>
+  <title>System Monitor</title>
   <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
   <style>
-    /* Adding some style so you can see it clearly */
+    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; text-align: center; }
     #status-display {
-      font-size: 2em;
-      padding: 20px;
-      border: 2px solid #ccc;
-      display: inline-block;
-      margin-top: 20px;
+      font-size: 2.5em; padding: 20px; border-radius: 10px;
+      background: white; border: 3px solid #ccc; margin-bottom: 20px;
     }
+    .history-table { margin: 0 auto; background: white; border-collapse: collapse; width: 80%; max-width: 600px; }
+    .history-table th, .history-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    .history-table th { background-color: #eee; }
+    .status-ok { color: green; font-weight: bold; }
+    .status-error { color: red; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>Pusher Test</h1>
-  <p>The current status is:</p>
-  
-  <div id="status-display">Waiting for data...</div>
+
+  <h1>System Dashboard</h1>
+  <div id="status-display">Loading Current State...</div>
+
+  <h3>Last 100 Updates (from Google Sheets)</h3>
+  <table class="history-table" id="log-table">
+    <thead>
+      <tr><th>Time</th><th>Status</th></tr>
+    </thead>
+    <tbody id="log-body">
+      </tbody>
+  </table>
 
   <script>
-    Pusher.logToConsole = true;
+    const SHEET_WEBAPP_URL = "PASTE_YOUR_GOOGLE_WEB_APP_URL_HERE";
 
-    var pusher = new Pusher('4989bad33341365610ef', {
-      cluster: 'us3'
-    });
+    // 1. FETCH HISTORICAL DATA
+    fetch(SHEET_WEBAPP_URL)
+      .then(response => response.json())
+      .then(data => {
+        const logBody = document.getElementById('log-body');
+        const display = document.getElementById('status-display');
+        
+        // Set the top status to the very first item in our reversed list
+        if(data.length > 0) {
+          updateDisplay(data[0][1]);
+        }
 
+        // Fill the table
+        data.forEach(row => {
+          let tr = document.createElement('tr');
+          tr.innerHTML = `<td>${row[0]}</td><td class="${row[1] === 'OK' ? 'status-ok' : 'status-error'}">${row[1]}</td>`;
+          logBody.appendChild(tr);
+        });
+      });
+
+    // 2. LIVE UPDATES VIA PUSHER
+    var pusher = new Pusher('4989bad33341365610ef', { cluster: 'us3' });
     var channel = pusher.subscribe('AWLMS');
     
     channel.bind('test', function(data) {
-      // 1. Find the element on the page with the ID 'status-display'
-      var display = document.getElementById('status-display');
+      updateDisplay(data.val);
       
-      // 2. Put the value from Pusher into that element
-      // data.val comes from your Google Script: JSON.stringify({ "val": e })
-      display.innerText = data.val;
-      
-      // 3. Optional: Change color based on the message
-      if (data.val === "broken") {
-        display.style.color = "red";
-      } else {
-        display.style.color = "green";
-      }
+      // Add new row to top of table live
+      const logBody = document.getElementById('log-body');
+      let tr = document.createElement('tr');
+      tr.innerHTML = `<td>Just Now</td><td class="${data.val === 'OK' ? 'status-ok' : 'status-error'}">${data.val}</td>`;
+      logBody.insertBefore(tr, logBody.firstChild);
     });
+
+    function updateDisplay(val) {
+      var display = document.getElementById('status-display');
+      display.innerText = "Current State: " + val;
+      display.style.borderColor = (val === "OK") ? "green" : "red";
+      display.style.color = (val === "OK") ? "green" : "red";
+    }
   </script>
 </body>
+</html>
