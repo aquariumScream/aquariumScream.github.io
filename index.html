@@ -32,33 +32,34 @@
     // PASTE YOUR GOOGLE WEB APP URL HERE
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxCv_mbnUbU8EKLbrP3T5WFFZIns34vBTYhAx_b1ZEHG8KxVdpnt7GYZVgGXJWoTD58/exec";
 
-    function refreshData() {
-      fetch(WEB_APP_URL)
-        .then(response => response.json())
-        .then(data => {
-          const logBody = document.getElementById('log-body');
-          const display = document.getElementById('status-display');
-          
-          // Clear current table
-          logBody.innerHTML = "";
+function refreshData() {
+  const display = document.getElementById('status-display');
+  const logBody = document.getElementById('log-body');
 
-          if (data.length > 0) {
-            // Update Top Status (the first item in our reversed list)
-            const currentStatus = data[0][1];
-            display.innerText = "Current State: " + currentStatus;
-            display.style.color = (currentStatus === "OK") ? "green" : "red";
-            display.style.borderColor = (currentStatus === "OK") ? "green" : "red";
+  // 1. FAST FETCH: Just the top status
+  fetch(WEB_APP_URL + "?type=latest")
+    .then(response => response.json())
+    .then(latest => {
+      const currentStatus = latest[1]; // Column B
+      display.innerText = "Current State: " + currentStatus;
+      display.style.color = (currentStatus === "OK") ? "green" : "red";
+      display.style.borderColor = (currentStatus === "OK") ? "green" : "red";
+    })
+    .catch(err => console.error("Error fetching latest:", err));
 
-            // Fill Table
-            data.forEach(row => {
-              let tr = document.createElement('tr');
-              tr.innerHTML = `<td>${row[0]}</td><td class="${row[1] === 'OK' ? 'status-ok' : 'status-error'}">${row[1]}</td>`;
-              logBody.appendChild(tr);
-            });
-          }
-        })
-        .catch(err => console.error("Error fetching data:", err));
-    }
+  // 2. FULL FETCH: The history table
+  fetch(WEB_APP_URL)
+    .then(response => response.json())
+    .then(data => {
+      logBody.innerHTML = ""; // Clear table
+      data.forEach(row => {
+        let tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row[0]}</td><td class="${row[1] === 'OK' ? 'status-ok' : 'status-error'}">${row[1]}</td>`;
+        logBody.appendChild(tr);
+      });
+    })
+    .catch(err => console.error("Error fetching history:", err));
+}
 
     // Initial load
     refreshData();
